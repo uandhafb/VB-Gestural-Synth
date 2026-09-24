@@ -25,6 +25,7 @@ You are helping a **student** build **Gestural**, a webcam gesture synth. Read t
 
 ## Git
 - Make small commits with clear messages (e.g. "Add texture mixer mode").
+- The remote is `origin` → https://github.com/uandhafb/VB-Gestural-Synth (branch `main`).
 - **Never** push to GitHub or any remote without the student's permission.
 - Don't change global Git settings.
 

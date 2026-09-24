@@ -20,3 +20,9 @@
 ## 2026-09-24: Granular engine written by hand
 - **Decision:** Write the granular synthesis ourselves: many tiny overlapping snippets ("grains") of the sound, each with a fade in and out.
 - **Why:** It's about 60 lines of Web Audio, needs no library, and is a good learning example.
+
+## 2026-09-24: Publish on GitHub under the MIT License
+- **Decision:** Connect the local repo to https://github.com/uandhafb/VB-Gestural-Synth (remote `origin`, branch `main`), and keep the MIT License that the GitHub repo was created with.
+- **Why:** MIT is simple and permissive, which suits a class project. It's compatible with MediaPipe (Apache 2.0, loaded from a CDN). Freesound audio is not in the repo, and each sound keeps its own license, which the app shows.
+- **Alternatives:** GPL (forces derived work to stay open; more restrictive) or no license (legally "all rights reserved").
+- **Revisit if:** the project starts bundling audio files or third-party code in the repo. Then check those licenses.

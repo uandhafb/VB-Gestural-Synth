@@ -13,3 +13,8 @@ node_modules/
 # Temporary / system files
 tmp/
 .DS_Store
+
+# Editor / logs
+.vscode/
+.idea/
+*.log

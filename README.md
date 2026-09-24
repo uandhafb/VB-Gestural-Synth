@@ -1,4 +1,4 @@
-# Gestural 🖐️🙂🎛️
+# Gestural 🖐️🙂🎛️ (VB-Gestural-Synth)
 
 Play a synth with your **hands and face** using your webcam, and shape real sounds from **[Freesound](https://freesound.org)**.
 
@@ -54,3 +54,13 @@ The app works without a Freesound key; it uses a built-in sound. To turn on Free
 - Open the browser console (`Cmd + Option + J` in Chrome) to see log messages.
 - The terminal running `server.py` shows server logs (searches, errors).
 - No camera? Make sure you opened `http://localhost:8000`, not the file directly.
+
+## Source code
+GitHub: https://github.com/uandhafb/VB-Gestural-Synth
+The local project folder is the main copy. GitHub is a backup and a way to share it.
+
+## License and credits
+- **Code:** [MIT License](LICENSE) © 2026 uandhafb. You may use, copy and change it, but keep the copyright notice.
+- **Hand/face tracking:** [MediaPipe](https://github.com/google-ai-edge/mediapipe) by Google (Apache 2.0). It's loaded from a CDN and not included in this repo.
+- **Sounds:** no Freesound audio is stored in this repo. Sounds are streamed from [Freesound](https://freesound.org), and **each sound has its own license** (CC0, CC BY, CC BY-NC…). The app shows the name, author and license of every loaded sound. If you record or publish a performance, credit the authors of CC BY sounds, and don't use CC BY-NC sounds commercially.
+- Built for a class, following `START_PROJECT.md`.

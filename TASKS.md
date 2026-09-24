@@ -7,6 +7,7 @@
 - Ideas: record a performance to a file, save favorite sound presets, show a waveform of sound A
 
 # Done
+- Connected to GitHub (MIT License), pushed `main`
 - Project setup: Git, docs, `.gitignore`, `.env.example`, `.venv`
 - `server.py`: serves the page, Freesound search + audio proxy (key stays secret)
 - `index.html`: hand + face tracking, Theremin / Sculptor / Texture Mixer modes, face effects, ✌️ mode switch, meters, Freesound search UI, built-in fallback sounds
