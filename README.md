@@ -1,5 +1,7 @@
 # Gestural 🖐️🙂🎛️ (VB-Gestural-Synth)
 
+> **Disclaimer:** This project was created as part of a class exercise for **EAST 398/498 Vibe Coding** (September 24, 2026). It's a student learning project, not production software.
+
 Play a synth with your **hands and face** using your webcam, and shape real sounds from **[Freesound](https://freesound.org)**.
 
 ## What it does
