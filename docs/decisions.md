@@ -26,3 +26,9 @@
 - **Why:** MIT is simple and permissive, which suits a class project. It's compatible with MediaPipe (Apache 2.0, loaded from a CDN). Freesound audio is not in the repo, and each sound keeps its own license, which the app shows.
 - **Alternatives:** GPL (forces derived work to stay open; more restrictive) or no license (legally "all rights reserved").
 - **Revisit if:** the project starts bundling audio files or third-party code in the repo. Then check those licenses.
+
+## 2026-09-24: Redesign with Hydra, "dark minimal neon", full-screen stage
+- **Decision:** Replace the panel layout with full-screen Hydra visuals and floating glass panels. Feed a canvas (ghost webcam + neon skeletons) into Hydra as `s0`, and expose the gestures as `window.body` for the patch. Add a live-code editor (`E`).
+- **Why:** The student didn't like the first design. They chose "dark minimal neon" and "full-screen stage". Hydra follows the professor's class example (strudel-pie), and live coding fits the course.
+- **Alternatives:** Put Hydra in an iframe as strudel-pie does. That's not needed here, because we don't use Strudel, so there's no clash between globals.
+- **License note:** hydra-synth is AGPL-3.0, and this repo is MIT. Hydra is loaded from a CDN, not copied into the repo, the same way the class example does it. **Revisit if** Hydra's code is ever bundled into the repo, or the project is distributed commercially. Then consider relicensing to AGPL-3.0.

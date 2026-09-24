@@ -3,6 +3,9 @@
 ## The big picture
 ```
 Webcam ──► MediaPipe (in browser) ──► hand + face numbers ──► "controls" ──► Web Audio synth ──► speakers
+   │                                                              │                    │ loudness
+   └──► "feed" canvas (ghost webcam + neon skeletons) ──► Hydra (s0) ◄── window.body ◄──┘
+                                                          └──► full-screen visuals
                                                                                 ▲
 Freesound.org ◄── server.py (adds secret key) ◄── search box in index.html ─────┘ (loads sounds)
 ```
@@ -27,7 +30,13 @@ Sections, in order inside the `<script type="module">`:
    - **Reverb:** a ConvolverNode with a generated noise-decay impulse (no files needed).
 5. **Modes:** `theremin`, `sculptor` and `mixer` decide which controls go to which sound parameters.
 6. **Freesound UI:** a search box → `GET /api/search?q=...` → results list → load into slot A/B via `GET /api/audio?url=...` → `decodeAudioData`. Attribution is shown.
-7. **Drawing:** the video is mirrored with points drawn over it, plus meters.
+7. **Visuals (Hydra):**
+   - `drawFeed()` draws a hidden canvas, `#feed`, that matches the screen's shape. It shows the mirrored webcam (grayscale, dim) plus neon hand skeletons (magenta = left, cyan = right) and face dots.
+   - Hydra (`hydra-synth` 1.4.0 from unpkg) runs on the full-screen `#hydra` canvas, with `s0.init({src: feed})`.
+   - Each frame, `publishBody()` copies the smoothed controls into `window.body`. The Hydra patch reads them with arrow functions, e.g. `() => body.brows`.
+   - The default patch lives in `<script type="text/hydra" id="defaultPatch">`. The live editor (`E`) runs code with global `eval`, like the Hydra web editor, and saves the last working patch in `localStorage` (`Reset` restores the default).
+   - If Hydra fails to load, the plain `#feed` canvas is shown instead.
+8. **UI:** glass panels float over the visuals (meters bottom-left, sounds bottom-right, modes top-right). `H` hides them.
 
 The first sound is a **built-in fallback** generated in JS (slot A: a chord pad, slot B: random bells), so the app works with no key.
 
@@ -39,4 +48,5 @@ The first sound is a **built-in fallback** generated in JS (slot A: a chord pad,
 
 ## External services
 - **cdn.jsdelivr.net / storage.googleapis.com:** the MediaPipe library and models (needs internet).
+- **unpkg.com:** the Hydra library (needs internet).
 - **freesound.org:** the sound search API (needs a free API key).

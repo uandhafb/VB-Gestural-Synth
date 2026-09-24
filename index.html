@@ -6,104 +6,213 @@
 <title>Gestural</title>
 <style>
     :root {
-        --bg: #0e0f13; --panel: #171922; --line: #2a2e3b;
-        --ink: #e9e9ef; --dim: #8a8da0;
-        --left: #ff7ab6; --right: #7cf5c4; --warn: #ffcc66; --bad: #ff6b6b;
+        --bg: #000;
+        --ink: #d8f6ff;
+        --dim: rgba(216, 246, 255, 0.45);
+        --faint: rgba(216, 246, 255, 0.18);
+        --cyan: #00e5ff;
+        --magenta: #ff2bd6;
+        --amber: #ffcc66;
+        --red: #ff5470;
+        --glass: rgba(0, 0, 0, 0.5);
+        --line: rgba(0, 229, 255, 0.22);
+        --mono: "SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Courier New", monospace;
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, sans-serif; }
-    header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-    h1 { font-size: 20px; margin: 0 8px 0 0; letter-spacing: .5px; }
-    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); margin: 0 0 10px; }
-    #status { color: var(--dim); flex: 1; min-width: 200px; }
-    #status.ok { color: var(--right); } #status.warn { color: var(--warn); } #status.error { color: var(--bad); }
-    button { background: #242836; color: var(--ink); border: 1px solid #353b4d; border-radius: 8px; padding: 7px 12px; font: inherit; cursor: pointer; }
-    button:hover:not(:disabled) { border-color: var(--right); }
-    button:disabled { opacity: .5; cursor: default; }
-    button.on { background: var(--right); color: #0e0f13; border-color: var(--right); }
-    #startBtn { background: var(--right); color: #0e0f13; font-weight: 600; }
-    main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; padding: 16px; }
-    @media (max-width: 950px) { main { grid-template-columns: minmax(0, 1fr); } }
-    #stage { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; }
-    #stage canvas { width: 100%; height: 100%; display: block; }
-    #stage .placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dim); text-align: center; padding: 20px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body { background: var(--bg); color: var(--ink); font: 12px/1.5 var(--mono); letter-spacing: 0.02em; }
+
+    /* ---------- full-screen visuals ---------- */
+    #hydra, #feed { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 0; }
+    #feed { display: none; }                         /* shown only if Hydra fails to load */
+    #vignette { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+        background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%); }
     video { display: none; }
-    #hint { margin-top: 10px; color: var(--dim); }
-    .panel { background: var(--panel); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
-    .meter { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 8px; margin: 5px 0; font-size: 13px; }
-    .bar { position: relative; height: 8px; background: #0b0c10; border-radius: 4px; overflow: hidden; }
-    .bar i { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: var(--right); border-radius: 4px; }
-    .bar.bi::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #444; }
-    .slot { margin: 6px 0; font-size: 13px; }
-    .slot b { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 6px; color: #0e0f13; margin-right: 6px; }
-    .slot.a b { background: var(--left); } .slot.b b { background: var(--right); }
-    a { color: var(--right); }
-    form { display: flex; gap: 6px; margin: 12px 0 8px; }
-    input { flex: 1; min-width: 0; background: #0b0c10; color: var(--ink); border: 1px solid #353b4d; border-radius: 8px; padding: 7px 10px; font: inherit; }
-    #results { max-height: 320px; overflow-y: auto; font-size: 13px; color: var(--dim); }
-    .result { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+
+    /* ---------- floating UI ---------- */
+    #ui { position: fixed; inset: 0; z-index: 2; pointer-events: none; transition: opacity .3s; }
+    #ui > * { pointer-events: auto; }
+    body.hide-ui #ui { opacity: 0; }
+    body.hide-ui #ui > * { pointer-events: none; }
+
+    .glass { background: var(--glass); border: 1px solid var(--line); border-radius: 4px;
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .label { color: var(--dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; }
+
+    #topLeft { position: absolute; top: 20px; left: 24px; pointer-events: none; }
+    .brand { font-size: 11px; letter-spacing: 0.5em; color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
+    #modeRow { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+    #modeName { font-size: 30px; font-weight: 300; letter-spacing: 0.12em; text-transform: uppercase;
+        text-shadow: 0 0 18px rgba(0, 229, 255, 0.55); }
+    #ring { width: 26px; height: 26px; transform: rotate(-90deg); opacity: 0; transition: opacity .2s; }
+    #ring circle { fill: none; stroke: var(--amber); stroke-width: 2.5; stroke-dasharray: 69.1; stroke-dashoffset: 69.1;
+        filter: drop-shadow(0 0 4px var(--amber)); }
+    #readout { color: var(--cyan); margin-top: 2px; min-height: 18px; }
+
+    #topRight { position: absolute; top: 20px; right: 24px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 60vw; }
+    button { font: inherit; color: var(--ink); background: var(--glass); border: 1px solid var(--line);
+        border-radius: 3px; padding: 6px 10px; cursor: pointer; letter-spacing: 0.08em;
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: border-color .15s, box-shadow .15s, color .15s; }
+    button:hover:not(:disabled) { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0, 229, 255, 0.35); }
+    button.on { color: #000; background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 14px rgba(0, 229, 255, 0.6); }
+    button:disabled { opacity: .4; cursor: default; }
+    kbd { font: inherit; color: var(--dim); }
+    button.on kbd { color: rgba(0,0,0,.55); }
+
+    #bodyPanel { position: absolute; left: 24px; bottom: 56px; width: 250px; padding: 12px 14px; }
+    .meter { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 10px; margin: 5px 0; color: var(--dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
+    .bar { position: relative; height: 2px; background: var(--faint); }
+    .bar i { position: absolute; top: -1px; bottom: -1px; left: 0; width: 0; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+    .bar.bi::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--dim); }
+    .bar.hand-l i { background: var(--magenta); box-shadow: 0 0 8px var(--magenta); }
+
+    #soundPanel { position: absolute; right: 24px; bottom: 56px; width: 320px; padding: 12px 14px; }
+    .slot { display: flex; gap: 8px; align-items: baseline; margin: 6px 0; white-space: nowrap; overflow: hidden; }
+    .slot b { font-weight: 400; width: 16px; flex: none; }
+    .slot.a b { color: var(--magenta); text-shadow: 0 0 8px var(--magenta); }
+    .slot.b b { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+    .slot span { overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
+    a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--faint); }
+    a:hover { border-color: var(--cyan); }
+    form { display: flex; gap: 6px; margin: 10px 0 6px; }
+    input { flex: 1; min-width: 0; font: inherit; color: var(--ink); background: transparent; border: none;
+        border-bottom: 1px solid var(--line); padding: 6px 2px; outline: none; }
+    input:focus { border-color: var(--cyan); }
+    input::placeholder { color: var(--faint); }
+    #results { max-height: 26vh; overflow-y: auto; color: var(--dim); }
+    .result { display: flex; align-items: center; gap: 6px; padding: 5px 0; border-top: 1px solid var(--faint); }
     .result div { flex: 1; min-width: 0; }
     .result .name { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .result button { padding: 3px 9px; }
-    ul.map { margin: 0; padding-left: 18px; color: var(--dim); font-size: 13px; }
-    kbd { background: #242836; border: 1px solid #353b4d; border-radius: 4px; padding: 0 5px; font-size: 12px; }
+    .result button { padding: 2px 7px; }
+
+    #hint { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); width: min(900px, 90vw);
+        text-align: center; color: var(--dim); pointer-events: none; }
+    #status { position: absolute; left: 50%; top: 22px; transform: translateX(-50%); color: var(--dim); pointer-events: none; max-width: 40vw; text-align: center; }
+    #status.ok, #introStatus.ok { color: var(--cyan); } #status.warn, #introStatus.warn { color: var(--amber); } #status.error, #introStatus.error { color: var(--red); }
+
+    /* ---------- intro screen ---------- */
+    #intro { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; text-align: center; background: rgba(0,0,0,0.35); transition: opacity .6s; }
+    #intro.gone { opacity: 0; pointer-events: none; }
+    #intro h1 { font-size: clamp(40px, 9vw, 110px); font-weight: 200; letter-spacing: 0.35em; margin-right: -0.35em;
+        color: var(--ink); text-shadow: 0 0 24px rgba(0, 229, 255, 0.8), 0 0 60px rgba(255, 43, 214, 0.35); }
+    #intro p { color: var(--dim); margin: 14px 0 34px; letter-spacing: 0.25em; text-transform: uppercase; }
+    #startBtn { font-size: 13px; padding: 12px 34px; letter-spacing: 0.4em; border-color: var(--cyan); color: var(--cyan);
+        text-shadow: 0 0 8px var(--cyan); box-shadow: 0 0 18px rgba(0, 229, 255, 0.25), inset 0 0 18px rgba(0, 229, 255, 0.12); }
+    #intro .fine { margin-top: 40px; font-size: 10px; color: var(--faint); letter-spacing: 0.15em; }
+    #introStatus { margin-top: 18px; min-height: 18px; color: var(--dim); }
+
+    /* ---------- live code editor ---------- */
+    #editor { position: fixed; z-index: 4; top: 90px; left: 24px; width: min(560px, calc(100vw - 48px)); padding: 12px 14px; display: none; }
+    body.show-editor #editor { display: block; }
+    #editor textarea { width: 100%; height: min(48vh, 420px); resize: vertical; background: transparent; color: var(--ink);
+        border: none; outline: none; font: 12px/1.6 var(--mono); tab-size: 2; white-space: pre; }
+    #editor .row { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+    #editorMsg { flex: 1; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #editorMsg.error { color: var(--red); } #editorMsg.ok { color: var(--cyan); }
+
+    @media (max-width: 800px) {
+        #bodyPanel { display: none; }
+        #soundPanel { left: 16px; right: 16px; width: auto; }
+        #topRight { max-width: 100vw; left: 16px; right: 16px; top: auto; bottom: 16px; justify-content: center; }
+        #hint, #status { display: none; }
+    }
 </style>
 </head>
 <body>
 
-<header>
-    <h1>🖐️ Gestural</h1>
-    <button id="startBtn">▶ Start</button>
-    <button class="modeBtn on" data-mode="theremin">1 Theremin</button>
-    <button class="modeBtn" data-mode="sculptor">2 Sculptor</button>
-    <button class="modeBtn" data-mode="mixer">3 Texture Mixer</button>
-    <button id="muteBtn">🔊 Mute (M)</button>
-    <span id="status">Press Start, then allow the camera.</span>
-</header>
+<!-- Hydra draws the whole background. "feed" is the webcam + skeleton image that Hydra processes (as s0). -->
+<canvas id="hydra"></canvas>
+<canvas id="feed"></canvas>
+<div id="vignette"></div>
+<video id="video" playsinline muted></video>
 
-<main>
-    <section>
-        <div id="stage">
-            <canvas id="canvas" width="640" height="480"></canvas>
-            <div class="placeholder" id="placeholder">Webcam view appears here after you press <b>&nbsp;▶ Start</b>.</div>
+<div id="ui">
+    <div id="topLeft">
+        <div class="brand">GESTURAL</div>
+        <div id="modeRow">
+            <div id="modeName">Theremin</div>
+            <svg id="ring" viewBox="0 0 26 26"><circle cx="13" cy="13" r="11"/></svg>
         </div>
-        <video id="video" playsinline muted></video>
-        <div id="hint"></div>
+        <div id="readout"></div>
+    </div>
+
+    <div id="status"></div>
+
+    <nav id="topRight">
+        <button class="modeBtn on" data-mode="theremin"><kbd>1</kbd> Theremin</button>
+        <button class="modeBtn" data-mode="sculptor"><kbd>2</kbd> Sculptor</button>
+        <button class="modeBtn" data-mode="mixer"><kbd>3</kbd> Mixer</button>
+        <button id="muteBtn"><kbd>M</kbd> Mute</button>
+        <button id="codeBtn"><kbd>E</kbd> Code</button>
+        <button id="hideBtn"><kbd>H</kbd> Hide</button>
+    </nav>
+
+    <section id="bodyPanel" class="glass">
+        <div class="label" style="margin-bottom:6px">Body → Sound</div>
+        <div id="meters"></div>
     </section>
 
-    <aside>
-        <div class="panel">
-            <h2>Your body → sound</h2>
-            <div id="meters"></div>
-        </div>
+    <section id="soundPanel" class="glass">
+        <div class="label">Sounds · Freesound</div>
+        <div class="slot a"><b>A</b><span id="slotA">built-in pad</span></div>
+        <div class="slot b"><b>B</b><span id="slotB">built-in bells</span></div>
+        <form id="searchForm">
+            <input id="q" placeholder="search: rain, choir, glass…" autocomplete="off">
+            <button>Search</button>
+        </form>
+        <div id="results"></div>
+    </section>
 
-        <div class="panel">
-            <h2>Sounds (Freesound)</h2>
-            <div class="slot a"><b>A</b><span id="slotA">Built-in pad</span></div>
-            <div class="slot b"><b>B</b><span id="slotB">Built-in bells</span></div>
-            <form id="searchForm">
-                <input id="q" placeholder="Search: rain, choir, glass, birds…" autocomplete="off">
-                <button>Search</button>
-            </form>
-            <div id="results">Sculptor uses slot A. Texture Mixer uses A (left hand) + B (right hand).</div>
-        </div>
+    <div id="hint"></div>
+</div>
 
-        <div class="panel">
-            <h2>Face (always on)</h2>
-            <ul class="map">
-                <li>Open mouth → brighter filter</li>
-                <li>Raise eyebrows → more reverb</li>
-                <li>Tilt head → pitch bend</li>
-                <li>Turn head → pan left/right</li>
-                <li>Smile → major scale (Theremin)</li>
-            </ul>
-            <h2 style="margin-top:12px">Switch mode</h2>
-            <ul class="map">
-                <li>Keys <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>, or hold ✌️ for 1 second</li>
-            </ul>
-        </div>
-    </aside>
-</main>
+<section id="editor" class="glass">
+    <div class="label" style="margin-bottom:8px">Hydra live code · <span style="text-transform:none">body.mouth · body.brows · body.smile · body.tilt · body.turn · body.lH · body.rH · body.rPinch · body.close · body.level</span></div>
+    <textarea id="code" spellcheck="false"></textarea>
+    <div class="row">
+        <span id="editorMsg">Shift+Enter to run</span>
+        <button id="resetBtn">Reset</button>
+        <button id="runBtn">Run ▶</button>
+    </div>
+</section>
+
+<div id="intro">
+    <div>
+        <h1>GESTURAL</h1>
+        <p>play sound with your hands &amp; face</p>
+        <button id="startBtn">START</button>
+        <div id="introStatus">allow the camera when asked</div>
+        <div class="fine">EAST 398/498 Vibe Coding · class exercise · 2026</div>
+    </div>
+</div>
+
+<!-- The default Hydra patch. Edit it here, or live in the app (press E). -->
+<script type="text/hydra" id="defaultPatch">
+// s0 = your ghost webcam + neon skeletons
+// body.* = your gestures (0..1, tilt/turn -1..1)
+
+src(s0)
+  .add(osc(60, 0.03, 0).thresh(0.985)      // thin moving neon lines
+      .color(0, 0.9, 1)
+      .rotate(() => body.turn * 0.4),
+    () => 0.08 + body.level * 0.6)          // louder = brighter
+  .blend(src(o0)                            // feedback = trails
+      .scale(() => 1.004 + body.close * 0.03)
+      .rotate(() => body.tilt * 0.02),
+    () => 0.3 + body.brows * 0.6)            // eyebrows = longer trails
+  .modulate(noise(2, 0.1), () => body.rPinch * 0.04)   // pinch = warp
+  .out(o0)
+
+src(o0)                                     // final look: color + scanlines
+  .saturate(() => 1 + body.mouth * 1.5)
+  .mult(osc(320, 0).rotate(Math.PI / 2)
+      .color(0.3, 0.3, 0.3).add(solid(0.7, 0.7, 0.7)))
+  .out(o1)
+
+render(o1)
+</script>
+
+<script src="https://unpkg.com/hydra-synth@1.4.0/dist/hydra-synth.js"></script>
 
 <script type="module">
 // =====================================================================
@@ -122,8 +231,7 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const deadzone = (v, d) => Math.abs(v) < d ? 0 : (v - Math.sign(v) * d) / (1 - d);
 
 function setStatus(msg, kind = "") {
-    $("status").textContent = msg;
-    $("status").className = kind;
+    for (const id of ["status", "introStatus"]) { $(id).textContent = msg; $(id).className = kind; }
 }
 
 // Smooths jumpy tracking values so the sound glides instead of jittering.
@@ -137,9 +245,9 @@ class Smooth {
 // =====================================================================
 const MODES = ["theremin", "sculptor", "mixer"];
 const MODE_INFO = {
-    theremin: { name: "1 · Theremin",      hint: "Right hand ↕ = pitch (on a scale) · Left hand ↕ = volume · Right pinch = vibrato · Smile = major, neutral = minor" },
-    sculptor: { name: "2 · Sculptor",      hint: "Right hand ↔ = position inside sound A · Right hand ↕ = pitch · Right pinch = tiny glitchy grains · Left hand ↕ = volume" },
-    mixer:    { name: "3 · Texture Mixer", hint: "Left hand = sound A, right hand = sound B · ↕ = volume + brightness · Bring hands together = melt into a cloud · Fist ✊ = freeze" },
+    theremin: { name: "Theremin",      hint: "right hand ↕ pitch · left hand ↕ volume · right pinch vibrato · smile = major" },
+    sculptor: { name: "Sculptor",      hint: "right hand ↔ position in sound A · ↕ pitch · pinch = glitchy grains · left hand ↕ volume" },
+    mixer:    { name: "Texture Mixer", hint: "left hand = A · right hand = B · ↕ volume + brightness · hands together = melt · fist = freeze" },
 };
 let mode = "theremin";
 let muted = false;
@@ -150,15 +258,63 @@ const C = {
     tilt: new Smooth(0, 0.2),   turn: new Smooth(0, 0.2),
     lH: new Smooth(0), rH: new Smooth(0), lX: new Smooth(0.5), rX: new Smooth(0.5),
     lPinch: new Smooth(0), rPinch: new Smooth(0), close: new Smooth(0, 0.15),
+    level: new Smooth(0, 0.3),
 };
+
+// Gesture values shared with the Hydra patch (read as body.mouth, body.brows, …)
+window.body = {};
+const publishBody = () => { for (const k in C) window.body[k] = C[k].v; };
+publishBody();
 
 let hands = { left: null, right: null };
 let face = null;
 let readout = "";
-let victoryProgress = 0;
 
 // =====================================================================
-// 3. Tracking (MediaPipe, runs fully in the browser)
+// 3. Hydra visuals (full-screen background)
+// =====================================================================
+const hydraCanvas = $("hydra"), feed = $("feed"), fg = feed.getContext("2d");
+let hydra = null;
+const FEED_H = 540;                                // feed resolution (kept small for speed)
+
+function sizeCanvases() {
+    feed.width = Math.round(FEED_H * innerWidth / innerHeight);
+    feed.height = FEED_H;
+    hydraCanvas.width = innerWidth; hydraCanvas.height = innerHeight;
+    hydra?.setResolution(innerWidth, innerHeight);
+}
+
+function runPatch(code) {
+    try {
+        (0, eval)(code);                           // run in global scope, like the Hydra editor
+        $("editorMsg").textContent = "running ✓"; $("editorMsg").className = "ok";
+        return true;
+    } catch (e) {
+        $("editorMsg").textContent = e.message; $("editorMsg").className = "error";
+        warn("Hydra patch error:", e.message);
+        return false;
+    }
+}
+
+function startHydra() {
+    sizeCanvases();
+    if (typeof Hydra === "undefined") {
+        warn("Hydra didn't load (offline?). Showing the plain feed instead.");
+        feed.style.display = "block"; hydraCanvas.style.display = "none";
+        return;
+    }
+    hydra = new Hydra({ canvas: hydraCanvas, width: innerWidth, height: innerHeight, detectAudio: false, enableStreamCapture: false });
+    s0.init({ src: feed });                       // our webcam+skeleton canvas becomes Hydra source s0
+    let code = $("defaultPatch").textContent.trim();
+    try { code = localStorage.getItem("gestural.patch") || code; } catch (e) { /* storage blocked: use default */ }
+    $("code").value = code;
+    if (!runPatch(code)) runPatch($("defaultPatch").textContent);
+    log("Hydra started");
+}
+addEventListener("resize", sizeCanvases);
+
+// =====================================================================
+// 4. Tracking (MediaPipe, runs fully in the browser)
 // =====================================================================
 const MP_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 const HAND_MODEL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
@@ -239,7 +395,7 @@ function analyzeFace(result, aspect) {
 }
 
 // =====================================================================
-// 4. Audio engine (Web Audio API)
+// 5. Audio engine (Web Audio API)
 // =====================================================================
 let actx = null;
 const A = {};
@@ -344,7 +500,7 @@ function makeBellBuffer(ctx) {
 }
 
 //   theremin + grain voices ─► bus ─► filter (mouth) ─► panner (head turn) ─┬► dry ─────────────┬► master ─► compressor ─► speakers
-//                                                                          └► reverb (brows) ─► wet ┘
+//                                                                          └► reverb (brows) ─► wet ┘            └► analyser (visuals)
 function buildAudio() {
     actx = new AudioContext();
     const bus = actx.createGain();
@@ -355,11 +511,13 @@ function buildAudio() {
     const wet = actx.createGain(); wet.gain.value = 0.1;
     const master = actx.createGain(); master.gain.value = 0.8;
     const comp = actx.createDynamicsCompressor();
+    const analyser = actx.createAnalyser(); analyser.fftSize = 1024;
     bus.connect(filter).connect(panner);
     panner.connect(dry).connect(master);
     panner.connect(verb).connect(wet).connect(master);
     master.connect(comp).connect(actx.destination);
-    Object.assign(A, { bus, filter, panner, wet, master });
+    comp.connect(analyser);
+    Object.assign(A, { bus, filter, panner, wet, master, analyser, levelData: new Float32Array(analyser.fftSize) });
 
     // Theremin: two slightly detuned oscillators + vibrato LFO
     const tGain = actx.createGain(); tGain.gain.value = 0;
@@ -381,6 +539,14 @@ function buildAudio() {
     A.voiceB.setBuffer(makeBellBuffer(actx));
     setInterval(() => { A.voiceA.tick(); A.voiceB.tick(); }, 25);
     log("Audio engine built", { sampleRate: actx.sampleRate });
+}
+
+// Loudness of the output (0..1), used by the visuals.
+function measureLevel() {
+    A.analyser.getFloatTimeDomainData(A.levelData);
+    let sum = 0;
+    for (const s of A.levelData) sum += s * s;
+    return clamp(Math.sqrt(sum / A.levelData.length) * 4);
 }
 
 // Music helpers
@@ -445,7 +611,7 @@ function updateAudio() {
             v.setLevel(hand ? 0.15 + hS.v * 0.85 : 0);
         }
         wet += melt * 0.4;
-        readout = `A ${L ? (L.fist ? "✊ frozen" : "playing") : "—"} · B ${R ? (R.fist ? "✊ frozen" : "playing") : "—"}${melt > 0.5 ? " · melting" : ""}`;
+        readout = `A ${L ? (L.fist ? "frozen" : "playing") : "—"} · B ${R ? (R.fist ? "frozen" : "playing") : "—"}${melt > 0.5 ? " · melting" : ""}`;
     } else {
         for (const v of [vA, vB]) { set(v.filter.frequency, 18000); set(v.pan.pan, 0); }
     }
@@ -455,13 +621,14 @@ function updateAudio() {
 }
 
 // =====================================================================
-// 5. Modes
+// 6. Modes
 // =====================================================================
 function setMode(m) {
     if (m === mode) return;
     mode = m;
     log("Mode →", m);
     document.querySelectorAll(".modeBtn").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+    $("modeName").textContent = MODE_INFO[m].name;
     $("hint").textContent = MODE_INFO[m].hint;
 }
 const nextMode = () => setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);
@@ -469,22 +636,25 @@ const nextMode = () => setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);
 // Hold ✌️ for 1 second → next mode
 let victoryStart = 0, lastSwitch = 0;
 function checkVictory(now) {
+    let progress = 0;
     if (hands.left?.victory || hands.right?.victory) {
         if (!victoryStart) victoryStart = now;
+        progress = clamp((now - victoryStart) / 1000);
         if (now - victoryStart > 1000 && now - lastSwitch > 1500) {
             log("✌️ gesture held → switching mode");
-            nextMode(); lastSwitch = now; victoryStart = 0;
+            nextMode(); lastSwitch = now; victoryStart = 0; progress = 0;
         }
     } else {
         victoryStart = 0;
     }
-    victoryProgress = victoryStart ? clamp((now - victoryStart) / 1000) : 0;
+    $("ring").style.opacity = progress > 0 ? 1 : 0;
+    $("ring").firstElementChild.style.strokeDashoffset = 69.1 * (1 - progress);
 }
 
 // =====================================================================
-// 6. Main loop: track → controls → sound → draw
+// 7. Main loop: track → controls → sound → draw
 // =====================================================================
-const video = $("video"), canvas = $("canvas"), g = canvas.getContext("2d");
+const video = $("video");
 let lastVideoTime = -1, detectErrorLogged = false, prevHandCount = -1, prevFace = null;
 
 function updateControls() {
@@ -518,66 +688,73 @@ function frame() {
         checkVictory(now);
         updateAudio();
     }
-    draw();
+    C.level.to(measureLevel());
+    publishBody();
+    drawFeed();
+    $("readout").textContent = readout;
     updateMeters();
 }
 
 // =====================================================================
-// 7. Drawing: mirrored video + tracking overlay + HUD
+// 8. Drawing the feed: ghost webcam + neon skeletons (Hydra then processes it)
 // =====================================================================
-function draw() {
-    const w = canvas.width, h = canvas.height;
-    g.save(); g.translate(w, 0); g.scale(-1, 1); g.drawImage(video, 0, 0, w, h); g.restore();
-    g.fillStyle = "rgba(8, 9, 14, 0.4)"; g.fillRect(0, 0, w, h);
+const CYAN = "#00e5ff", MAGENTA = "#ff2bd6";
 
+function drawFeed() {
+    const W = feed.width, H = feed.height, vw = video.videoWidth || 4, vh = video.videoHeight || 3;
+    // "cover" fit: fill the screen, crop the edges, keep proportions
+    const s = Math.max(W / vw, H / vh), dw = vw * s, dh = vh * s, ox = (W - dw) / 2, oy = (H - dh) / 2;
+    const P = (p) => [ox + (1 - p.x) * dw, oy + p.y * dh];              // landmark → feed pixel (mirrored)
+
+    fg.fillStyle = "#000"; fg.fillRect(0, 0, W, H);
+    fg.save();
+    fg.translate(W, 0); fg.scale(-1, 1);
+    fg.filter = "grayscale(1) contrast(1.6) brightness(0.55)";
+    fg.globalAlpha = 0.45;
+    fg.drawImage(video, ox, oy, dw, dh);
+    fg.restore();
+
+    fg.save();
+    fg.lineCap = "round";
     if (face) {
-        g.fillStyle = "rgba(255, 255, 255, 0.45)";
-        for (let i = 0; i < face.lm.length; i += 3) { const p = face.lm[i]; g.fillRect((1 - p.x) * w - 1, p.y * h - 1, 2, 2); }
+        fg.fillStyle = "rgba(255, 43, 214, 0.55)";
+        for (let i = 0; i < face.lm.length; i += 3) { const [x, y] = P(face.lm[i]); fg.fillRect(x - 0.75, y - 0.75, 1.5, 1.5); }
     }
-
-    // Sculptor: show where you are inside the sound
     if (mode === "sculptor" && hands.right) {
-        const x = A.voiceA.position * w;
-        g.strokeStyle = "rgba(124, 245, 196, 0.6)"; g.lineWidth = 2;
-        g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke();
+        const x = ox + A.voiceA.position * dw;
+        fg.strokeStyle = "rgba(0, 229, 255, 0.5)"; fg.lineWidth = 1;
+        fg.beginPath(); fg.moveTo(x, 0); fg.lineTo(x, H); fg.stroke();
     }
-
-    for (const [hand, color, label] of [[hands.left, "#ff7ab6", mode === "mixer" ? "A" : "L"], [hands.right, "#7cf5c4", mode === "mixer" ? "B" : "R"]]) {
+    for (const [hand, color, label] of [[hands.left, MAGENTA, mode === "mixer" ? "A" : "L"], [hands.right, CYAN, mode === "mixer" ? "B" : "R"]]) {
         if (!hand) continue;
-        g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 3;
-        for (const [s, e] of HAND_LINKS) {
-            const a = hand.lm[s], b = hand.lm[e];
-            g.beginPath(); g.moveTo((1 - a.x) * w, a.y * h); g.lineTo((1 - b.x) * w, b.y * h); g.stroke();
-        }
-        for (const p of hand.lm) { g.beginPath(); g.arc((1 - p.x) * w, p.y * h, 3.5, 0, 7); g.fill(); }
-        const tag = label + (hand.fist ? " ✊" : "") + (hand.victory ? " ✌️" : "");
-        g.font = "bold 20px system-ui"; g.fillText(tag, (1 - hand.lm[0].x) * w - 10, hand.lm[0].y * h + 30);
+        fg.strokeStyle = color; fg.fillStyle = color;
+        fg.shadowColor = color; fg.shadowBlur = 14;
+        fg.lineWidth = hand.fist ? 3 : 1.6;
+        fg.beginPath();
+        for (const [a, b] of HAND_LINKS) { const [x1, y1] = P(hand.lm[a]), [x2, y2] = P(hand.lm[b]); fg.moveTo(x1, y1); fg.lineTo(x2, y2); }
+        fg.stroke();
+        for (const i of [4, 8, 12, 16, 20]) { const [x, y] = P(hand.lm[i]); fg.beginPath(); fg.arc(x, y, 2.5, 0, 7); fg.fill(); }
+        const [wx, wy] = P(hand.lm[0]);
+        fg.shadowBlur = 8; fg.font = "12px Menlo, monospace";
+        fg.fillText(label + (hand.fist ? " · freeze" : "") + (hand.victory ? " · ✌" : ""), wx - 12, wy + 22);
     }
-
-    // HUD
-    g.fillStyle = "#fff"; g.font = "bold 26px system-ui"; g.fillText(MODE_INFO[mode].name, 18, 40);
-    g.font = "18px system-ui"; g.fillStyle = "rgba(255,255,255,0.8)"; g.fillText(readout, 18, 66);
-    if (muted) { g.fillStyle = "#ffcc66"; g.fillText("MUTED (M)", w - 110, 66); }
-    if (victoryProgress > 0) {
-        g.strokeStyle = "#ffcc66"; g.lineWidth = 5;
-        g.beginPath(); g.arc(w - 40, 40, 20, -Math.PI / 2, -Math.PI / 2 + victoryProgress * Math.PI * 2); g.stroke();
-    }
+    fg.restore();
 }
 
-// Side-panel meters: see what your body is doing
+// Meters: thin neon lines showing what your body is doing
 const METERS = [
-    ["mouth", "👄 Mouth → filter"], ["brows", "🤨 Brows → reverb"], ["smile", "😊 Smile → major"],
-    ["tilt", "↔️ Tilt → bend", true], ["turn", "🔄 Turn → pan", true],
-    ["lH", "🫲 Left height"], ["rH", "🫱 Right height"], ["rPinch", "🤏 Right pinch"], ["close", "🙌 Hands together"],
+    ["mouth", "mouth"], ["brows", "brows"], ["smile", "smile"],
+    ["tilt", "tilt", "bi"], ["turn", "turn", "bi"],
+    ["lH", "left hand", "hand-l"], ["rH", "right hand"], ["rPinch", "pinch"], ["close", "together"], ["level", "level"],
 ];
 const meterEls = {};
-for (const [key, label, bipolar] of METERS) {
+for (const [key, label, kind] of METERS) {
     const row = document.createElement("div"); row.className = "meter";
     const name = document.createElement("span"); name.textContent = label;
-    const bar = document.createElement("div"); bar.className = "bar" + (bipolar ? " bi" : "");
+    const bar = document.createElement("div"); bar.className = "bar" + (kind ? " " + kind : "");
     const fill = document.createElement("i"); bar.append(fill); row.append(name, bar);
     $("meters").append(row);
-    meterEls[key] = { fill, bipolar };
+    meterEls[key] = { fill, bipolar: kind === "bi" };
 }
 function updateMeters() {
     for (const key in meterEls) {
@@ -588,7 +765,7 @@ function updateMeters() {
 }
 
 // =====================================================================
-// 8. Freesound search + loading sounds into slots A / B
+// 9. Freesound search + loading sounds into slots A / B
 // =====================================================================
 function licenseShort(url = "") {
     if (url.includes("zero")) return "CC0";
@@ -603,12 +780,13 @@ function showSlot(slot, r) {
     el.textContent = "";
     const a = document.createElement("a");
     a.href = r.page; a.target = "_blank"; a.rel = "noopener"; a.textContent = r.name;
-    el.append(a, ` by ${r.username} (${licenseShort(r.license)})`);
+    el.append(a, ` · ${r.username} · ${licenseShort(r.license)}`);
+    el.title = `${r.name} by ${r.username} (${licenseShort(r.license)})`;
 }
 
 async function loadIntoSlot(r, slot) {
-    if (!actx) { setStatus("Press ▶ Start first, then load sounds.", "warn"); return; }
-    setStatus(`Loading “${r.name}” into ${slot}…`);
+    if (!actx) { setStatus("press START first, then load sounds", "warn"); return; }
+    setStatus(`loading “${r.name}” → ${slot}…`);
     try {
         const res = await fetch("/api/audio?url=" + encodeURIComponent(r.preview));
         if (!res.ok) throw new Error(`server said HTTP ${res.status}`);
@@ -616,10 +794,10 @@ async function loadIntoSlot(r, slot) {
         (slot === "A" ? A.voiceA : A.voiceB).setBuffer(buf);
         showSlot(slot, r);
         log(`Loaded into slot ${slot}:`, r.name, `by ${r.username}`, `${buf.duration.toFixed(1)}s`);
-        setStatus(`Loaded “${r.name}” into slot ${slot}.`, "ok");
+        setStatus(`“${r.name}” → slot ${slot}`, "ok");
     } catch (e) {
         err("Could not load sound", r, e);
-        setStatus("Couldn't load that sound. See the console for details.", "error");
+        setStatus("couldn't load that sound (see console)", "error");
     }
 }
 
@@ -628,13 +806,13 @@ $("searchForm").addEventListener("submit", async (e) => {
     const q = $("q").value.trim();
     if (!q) return;
     const box = $("results");
-    box.textContent = "Searching…";
+    box.textContent = "searching…";
     log("Searching Freesound for", q);
     try {
         const res = await fetch("/api/search?q=" + encodeURIComponent(q));
         const data = await res.json();
-        if (!res.ok) { box.textContent = data.message || "Search failed."; warn("Search failed", data); return; }
-        box.textContent = data.results.length ? "" : "No results. Try another word.";
+        if (!res.ok) { box.textContent = data.message || "search failed"; warn("Search failed", data); return; }
+        box.textContent = data.results.length ? "" : "no results, try another word";
         for (const r of data.results) {
             const row = document.createElement("div"); row.className = "result";
             const info = document.createElement("div");
@@ -644,7 +822,8 @@ $("searchForm").addEventListener("submit", async (e) => {
             info.append(name, meta);
             row.append(info);
             for (const slot of ["A", "B"]) {
-                const b = document.createElement("button"); b.textContent = "→ " + slot;
+                const b = document.createElement("button"); b.textContent = slot;
+                b.title = `load into slot ${slot}`;
                 b.onclick = () => loadIntoSlot(r, slot);
                 row.append(b);
             }
@@ -652,42 +831,40 @@ $("searchForm").addEventListener("submit", async (e) => {
         }
     } catch (e2) {
         err("Search request failed", e2);
-        box.textContent = "Search failed. Is server.py running?";
+        box.textContent = "search failed. is server.py running?";
     }
 });
 
 // =====================================================================
-// 9. Start-up, buttons, keys
+// 10. Start-up, buttons, keys, live code editor
 // =====================================================================
 async function start() {
     const btn = $("startBtn");
     if (location.protocol === "file:") {
-        setStatus("Run `python3 server.py` and open http://localhost:8000. The camera doesn't work from a file.", "error");
+        setStatus("run python3 server.py and open http://localhost:8000", "error");
         return;
     }
     btn.disabled = true;
     try {
-        setStatus("Starting audio…");
+        setStatus("starting audio…");
         if (!actx) buildAudio();
         await actx.resume();
 
-        setStatus("Starting camera…");
+        setStatus("starting camera…");
         const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
         video.srcObject = stream;
         await video.play();
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
         log("Camera started", `${video.videoWidth}x${video.videoHeight}`);
 
-        setStatus("Loading hand + face tracking (the first time can take a few seconds)…");
+        setStatus("loading hand + face tracking…");
         await loadModels();
 
-        $("placeholder").remove();
-        btn.textContent = "● Running";
-        setStatus("Ready! Move your hands and face.", "ok");
+        $("intro").classList.add("gone");
+        setStatus("");
         requestAnimationFrame(frame);
     } catch (e) {
         err("Startup failed", e);
-        const msg = e.name === "NotAllowedError" ? "Camera permission was denied. Allow it in the browser's address bar, then try again." : "Startup failed: " + e.message;
+        const msg = e.name === "NotAllowedError" ? "camera permission denied. allow it in the address bar, then try again" : "startup failed: " + e.message;
         setStatus(msg, "error");
         btn.disabled = false;
     }
@@ -696,21 +873,49 @@ async function start() {
 function toggleMute() {
     muted = !muted;
     if (actx) A.master.gain.setTargetAtTime(muted ? 0 : 0.8, actx.currentTime, 0.05);
-    $("muteBtn").textContent = muted ? "🔇 Unmute (M)" : "🔊 Mute (M)";
+    $("muteBtn").classList.toggle("on", muted);
     log(muted ? "Muted" : "Unmuted");
+}
+const toggleHide = () => document.body.classList.toggle("hide-ui");
+function toggleEditor() {
+    const open = document.body.classList.toggle("show-editor");
+    $("codeBtn").classList.toggle("on", open);
+    if (open) $("code").focus();
+}
+function runEditor() {
+    const code = $("code").value;
+    if (runPatch(code)) { try { localStorage.setItem("gestural.patch", code); } catch (e) { /* storage blocked */ } log("Hydra patch updated"); }
 }
 
 $("startBtn").addEventListener("click", start);
 $("muteBtn").addEventListener("click", toggleMute);
+$("hideBtn").addEventListener("click", toggleHide);
+$("codeBtn").addEventListener("click", toggleEditor);
+$("runBtn").addEventListener("click", runEditor);
+$("resetBtn").addEventListener("click", () => {
+    $("code").value = $("defaultPatch").textContent.trim();
+    try { localStorage.removeItem("gestural.patch"); } catch (e) { /* storage blocked */ }
+    runPatch($("code").value);
+    log("Hydra patch reset to default");
+});
+$("code").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.shiftKey || e.ctrlKey || e.metaKey)) { e.preventDefault(); runEditor(); }
+    if (e.key === "Escape") toggleEditor();
+    if (e.key === "Tab") { e.preventDefault(); document.execCommand("insertText", false, "  "); }
+});
 document.querySelectorAll(".modeBtn").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
 document.addEventListener("keydown", (e) => {
-    if (e.target.tagName === "INPUT") return;
-    if (e.key === "1" || e.key === "2" || e.key === "3") setMode(MODES[Number(e.key) - 1]);
-    if (e.key === "m" || e.key === "M") toggleMute();
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    const k = e.key.toLowerCase();
+    if (k === "1" || k === "2" || k === "3") setMode(MODES[Number(k) - 1]);
+    if (k === "m") toggleMute();
+    if (k === "h") toggleHide();
+    if (k === "e") { e.preventDefault(); toggleEditor(); }
 });
 
 $("hint").textContent = MODE_INFO[mode].hint;
-log("Page loaded. Press Start.");
+startHydra();
+log("Page loaded. Press START.");
 </script>
 </body>
 </html>

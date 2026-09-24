@@ -12,6 +12,16 @@ Play a synth with your **hands and face** using your webcam, and shape real soun
   3. **Texture Mixer**: each hand holds a sound (A and B). Height = volume and brightness, hands apart = wide stereo, hands together = melt into a cloud, fist = freeze.
 - **Face effects, always on:** open mouth = brighter filter, raise eyebrows = more reverb, tilt head = pitch bend, turn head = left/right pan, smile = switch major/minor (Theremin).
 - **Freesound search:** type a word (e.g. "rain"), then load a result into slot A or B.
+- **Hydra visuals:** a full-screen, dark neon look. Your ghostly webcam image and glowing hand skeletons are processed by [Hydra](https://hydra.ojack.xyz), and your gestures and the sound's loudness drive the visuals.
+- **Live coding:** press `E` to edit the Hydra patch while you play, then `Shift + Enter` to run it. Your gestures are available as `body.mouth`, `body.brows`, `body.rH`, `body.level` and so on.
+
+### Keys
+| Key | Does |
+|---|---|
+| `1` `2` `3` | Theremin / Sculptor / Texture Mixer |
+| `M` | Mute |
+| `E` | Open/close the Hydra code editor (`Shift+Enter` = run, `Esc` = close) |
+| `H` | Hide all panels (performance view) |
 
 ## How to run it
 1. Open a terminal in this folder.
@@ -46,7 +56,7 @@ The app works without a Freesound key; it uses a built-in sound. To turn on Free
 ## Important files
 | File | What it is |
 |---|---|
-| `index.html` | The whole app: page, style, tracking, and sound engine |
+| `index.html` | The whole app: page, style, Hydra visuals, tracking, and sound engine. The default Hydra patch is the `<script type="text/hydra">` block near the top |
 | `server.py` | Small local server: serves the page and talks to Freesound, keeping your key secret |
 | `.env.example` | Template for your secret key file |
 | `docs/` | How it's built, decisions, development history |
@@ -63,6 +73,7 @@ The local project folder is the main copy. GitHub is a backup and a way to share
 
 ## License and credits
 - **Code:** [MIT License](LICENSE) © 2026 uandhafb. You may use, copy and change it, but keep the copyright notice.
+- **Visuals:** [Hydra](https://github.com/hydra-synth/hydra-synth) by Olivia Jack (AGPL-3.0). It's loaded from the unpkg CDN and not included in this repo. The integration pattern follows the class example [strudel-pie](https://github.com/vigliensoni/strudel-pie) by Gabriel Vigliensoni.
 - **Hand/face tracking:** [MediaPipe](https://github.com/google-ai-edge/mediapipe) by Google (Apache 2.0). It's loaded from a CDN and not included in this repo.
 - **Sounds:** no Freesound audio is stored in this repo. Sounds are streamed from [Freesound](https://freesound.org), and **each sound has its own license** (CC0, CC BY, CC BY-NC…). The app shows the name, author and license of every loaded sound. If you record or publish a performance, credit the authors of CC BY sounds, and don't use CC BY-NC sounds commercially.
 - Built for a class project.

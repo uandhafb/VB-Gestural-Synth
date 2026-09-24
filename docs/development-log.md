@@ -20,3 +20,8 @@
 ## 2026-09-24: Stopped sharing the professor's START_PROJECT.md
 - **What:** Removed `START_PROJECT.md` from Git tracking (`git rm --cached`) and added it to `.gitignore`. The file still exists locally.
 - **Why:** It's the professor's material, and the repo is public.
+
+## 2026-09-24: Hydra redesign
+- **What:** Rewrote the UI of `index.html` as a full-screen Hydra stage with a dark neon style, floating panels, an intro screen with the class disclaimer, a live Hydra code editor (`E`), a hide-UI key (`H`), and a loudness meter (`body.level`). The audio, tracking and Freesound logic are unchanged.
+- **Why:** The student asked for a cooler design using Hydra (the class example is strudel-pie).
+- **Next agent:** The visual look is mostly in the default patch (`#defaultPatch`) and `drawFeed()`. The patch is saved in the browser's localStorage, so if the visuals look "wrong", press Reset in the editor.

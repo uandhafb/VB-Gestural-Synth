@@ -7,11 +7,13 @@
 - Ideas: record a performance to a file, save favorite sound presets, show a waveform of sound A
 
 # Done
+- Redesign: full-screen Hydra visuals (dark neon), floating panels, live code editor (E), hide UI (H)
 - Connected to GitHub (MIT License), pushed `main`
 - Project setup: Git, docs, `.gitignore`, `.env.example`, `.venv`
 - `server.py`: serves the page, Freesound search + audio proxy (key stays secret)
 - `index.html`: hand + face tracking, Theremin / Sculptor / Texture Mixer modes, face effects, ✌️ mode switch, meters, Freesound search UI, built-in fallback sounds
 
 # Questions
+- Keep MIT, or switch to AGPL-3.0 because Hydra is AGPL? (see docs/decisions.md)
 - Which Freesound sounds work best for Sculptor and Texture Mixer?
 - Does tracking run smoothly on your computer? (If not, we can run face tracking less often)
