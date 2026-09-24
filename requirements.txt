@@ -1,0 +1,2 @@
+# server.py uses only the Python standard library.
+# No extra packages are needed right now.

@@ -1,0 +1,15 @@
+# Secrets (real API keys live here - never commit!)
+.env
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Node (not used yet, but safe)
+node_modules/
+
+# Temporary / system files
+tmp/
+.DS_Store
