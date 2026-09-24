@@ -5,7 +5,7 @@ You are helping a **student** build **Gestural**, a webcam gesture synth. Read t
 ## Before changing anything
 1. Read `README.md`, `PROJECT.md`, `TASKS.md`, and everything in `docs/`.
 2. Run `git status` and `git diff` to see the current state.
-3. `START_PROJECT.md` holds the original class rules. Follow them.
+3. `START_PROJECT.md` holds the original class rules. Follow them. It's the professor's file: it stays **local only** (git-ignored) and must not be committed.
 
 ## How to work
 - Keep it **simple**. The app is browser-first: one `index.html` (HTML + CSS + JS together) plus a small `server.py`.

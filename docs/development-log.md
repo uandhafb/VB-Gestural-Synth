@@ -16,3 +16,7 @@
 - **What:** Added the remote `origin` → github.com/uandhafb/VB-Gestural-Synth. Merged GitHub's initial commit (LICENSE, README) and kept the local README. Added license/credits to the README and editor/log files to `.gitignore`.
 - **Why:** The student wants the project backed up and shared on GitHub.
 - **Next agent:** Push only when the student asks. `.env` (the Freesound key) is git-ignored. Keep it that way.
+
+## 2026-09-24: Stopped sharing the professor's START_PROJECT.md
+- **What:** Removed `START_PROJECT.md` from Git tracking (`git rm --cached`) and added it to `.gitignore`. The file still exists locally.
+- **Why:** It's the professor's material, and the repo is public.

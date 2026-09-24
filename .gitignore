@@ -18,3 +18,6 @@ tmp/
 .vscode/
 .idea/
 *.log
+
+# Professor's class instructions (kept local, not shared)
+START_PROJECT.md
