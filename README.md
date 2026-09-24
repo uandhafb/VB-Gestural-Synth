@@ -5,9 +5,9 @@ Play a synth with your **hands and face** using your webcam, and shape real soun
 ## What it does
 - Tracks both hands and your face in the browser (with MediaPipe).
 - Has **3 hand modes** (switch with keys `1` `2` `3`, the buttons, or by holding ✌️ for 1 second):
-  1. **Theremin**: right hand height = pitch (on a musical scale), left hand height = volume.
+  1. **Theremin**: right hand height = pitch (on a musical scale), left hand height = volume, right pinch = vibrato.
   2. **Sculptor**: right hand moves through a recording like a scrubber, pinch = grain size (smooth ↔ glitchy), right hand height = pitch, left hand height = volume.
-  3. **Texture Mixer**: each hand holds a sound (A and B). Height = volume and brightness, hands together = blend, fist = freeze.
+  3. **Texture Mixer**: each hand holds a sound (A and B). Height = volume and brightness, hands apart = wide stereo, hands together = melt into a cloud, fist = freeze.
 - **Face effects, always on:** open mouth = brighter filter, raise eyebrows = more reverb, tilt head = pitch bend, turn head = left/right pan, smile = switch major/minor (Theremin).
 - **Freesound search:** type a word (e.g. "rain"), then load a result into slot A or B.
 

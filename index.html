@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestural</title>
+<style>
+    :root {
+        --bg: #0e0f13; --panel: #171922; --line: #2a2e3b;
+        --ink: #e9e9ef; --dim: #8a8da0;
+        --left: #ff7ab6; --right: #7cf5c4; --warn: #ffcc66; --bad: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, sans-serif; }
+    header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    h1 { font-size: 20px; margin: 0 8px 0 0; letter-spacing: .5px; }
+    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); margin: 0 0 10px; }
+    #status { color: var(--dim); flex: 1; min-width: 200px; }
+    #status.ok { color: var(--right); } #status.warn { color: var(--warn); } #status.error { color: var(--bad); }
+    button { background: #242836; color: var(--ink); border: 1px solid #353b4d; border-radius: 8px; padding: 7px 12px; font: inherit; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--right); }
+    button:disabled { opacity: .5; cursor: default; }
+    button.on { background: var(--right); color: #0e0f13; border-color: var(--right); }
+    #startBtn { background: var(--right); color: #0e0f13; font-weight: 600; }
+    main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; padding: 16px; }
+    @media (max-width: 950px) { main { grid-template-columns: minmax(0, 1fr); } }
+    #stage { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; }
+    #stage canvas { width: 100%; height: 100%; display: block; }
+    #stage .placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dim); text-align: center; padding: 20px; }
+    video { display: none; }
+    #hint { margin-top: 10px; color: var(--dim); }
+    .panel { background: var(--panel); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+    .meter { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 8px; margin: 5px 0; font-size: 13px; }
+    .bar { position: relative; height: 8px; background: #0b0c10; border-radius: 4px; overflow: hidden; }
+    .bar i { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: var(--right); border-radius: 4px; }
+    .bar.bi::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #444; }
+    .slot { margin: 6px 0; font-size: 13px; }
+    .slot b { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 6px; color: #0e0f13; margin-right: 6px; }
+    .slot.a b { background: var(--left); } .slot.b b { background: var(--right); }
+    a { color: var(--right); }
+    form { display: flex; gap: 6px; margin: 12px 0 8px; }
+    input { flex: 1; min-width: 0; background: #0b0c10; color: var(--ink); border: 1px solid #353b4d; border-radius: 8px; padding: 7px 10px; font: inherit; }
+    #results { max-height: 320px; overflow-y: auto; font-size: 13px; color: var(--dim); }
+    .result { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+    .result div { flex: 1; min-width: 0; }
+    .result .name { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .result button { padding: 3px 9px; }
+    ul.map { margin: 0; padding-left: 18px; color: var(--dim); font-size: 13px; }
+    kbd { background: #242836; border: 1px solid #353b4d; border-radius: 4px; padding: 0 5px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>🖐️ Gestural</h1>
+    <button id="startBtn">▶ Start</button>
+    <button class="modeBtn on" data-mode="theremin">1 Theremin</button>
+    <button class="modeBtn" data-mode="sculptor">2 Sculptor</button>
+    <button class="modeBtn" data-mode="mixer">3 Texture Mixer</button>
+    <button id="muteBtn">🔊 Mute (M)</button>
+    <span id="status">Press Start, then allow the camera.</span>
+</header>
+
+<main>
+    <section>
+        <div id="stage">
+            <canvas id="canvas" width="640" height="480"></canvas>
+            <div class="placeholder" id="placeholder">Webcam view appears here after you press <b>&nbsp;▶ Start</b>.</div>
+        </div>
+        <video id="video" playsinline muted></video>
+        <div id="hint"></div>
+    </section>
+
+    <aside>
+        <div class="panel">
+            <h2>Your body → sound</h2>
+            <div id="meters"></div>
+        </div>
+
+        <div class="panel">
+            <h2>Sounds (Freesound)</h2>
+            <div class="slot a"><b>A</b><span id="slotA">Built-in pad</span></div>
+            <div class="slot b"><b>B</b><span id="slotB">Built-in bells</span></div>
+            <form id="searchForm">
+                <input id="q" placeholder="Search: rain, choir, glass, birds…" autocomplete="off">
+                <button>Search</button>
+            </form>
+            <div id="results">Sculptor uses slot A. Texture Mixer uses A (left hand) + B (right hand).</div>
+        </div>
+
+        <div class="panel">
+            <h2>Face (always on)</h2>
+            <ul class="map">
+                <li>Open mouth → brighter filter</li>
+                <li>Raise eyebrows → more reverb</li>
+                <li>Tilt head → pitch bend</li>
+                <li>Turn head → pan left/right</li>
+                <li>Smile → major scale (Theremin)</li>
+            </ul>
+            <h2 style="margin-top:12px">Switch mode</h2>
+            <ul class="map">
+                <li>Keys <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>, or hold ✌️ for 1 second</li>
+            </ul>
+        </div>
+    </aside>
+</main>
+
+<script type="module">
+// =====================================================================
+// 1. Small helpers + logging
+// =====================================================================
+const TAG = "[Gestural]";
+const log  = (...a) => console.log(TAG, ...a);
+const warn = (...a) => console.warn(TAG, ...a);
+const err  = (...a) => console.error(TAG, ...a);
+
+const $ = (id) => document.getElementById(id);
+const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
+const remap = (v, a, b) => clamp((v - a) / (b - a));          // map a..b to 0..1 (works reversed too)
+const lerp = (a, b, t) => a + (b - a) * t;
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const deadzone = (v, d) => Math.abs(v) < d ? 0 : (v - Math.sign(v) * d) / (1 - d);
+
+function setStatus(msg, kind = "") {
+    $("status").textContent = msg;
+    $("status").className = kind;
+}
+
+// Smooths jumpy tracking values so the sound glides instead of jittering.
+class Smooth {
+    constructor(v = 0, k = 0.25) { this.v = v; this.k = k; }
+    to(target) { this.v += (target - this.v) * this.k; return this.v; }
+}
+
+// =====================================================================
+// 2. State
+// =====================================================================
+const MODES = ["theremin", "sculptor", "mixer"];
+const MODE_INFO = {
+    theremin: { name: "1 · Theremin",      hint: "Right hand ↕ = pitch (on a scale) · Left hand ↕ = volume · Right pinch = vibrato · Smile = major, neutral = minor" },
+    sculptor: { name: "2 · Sculptor",      hint: "Right hand ↔ = position inside sound A · Right hand ↕ = pitch · Right pinch = tiny glitchy grains · Left hand ↕ = volume" },
+    mixer:    { name: "3 · Texture Mixer", hint: "Left hand = sound A, right hand = sound B · ↕ = volume + brightness · Bring hands together = melt into a cloud · Fist ✊ = freeze" },
+};
+let mode = "theremin";
+let muted = false;
+
+// Smoothed controls (0..1, or -1..1 for tilt/turn)
+const C = {
+    mouth: new Smooth(0.5, 0.2), brows: new Smooth(0, 0.2), smile: new Smooth(0, 0.2),
+    tilt: new Smooth(0, 0.2),   turn: new Smooth(0, 0.2),
+    lH: new Smooth(0), rH: new Smooth(0), lX: new Smooth(0.5), rX: new Smooth(0.5),
+    lPinch: new Smooth(0), rPinch: new Smooth(0), close: new Smooth(0, 0.15),
+};
+
+let hands = { left: null, right: null };
+let face = null;
+let readout = "";
+let victoryProgress = 0;
+
+// =====================================================================
+// 3. Tracking (MediaPipe, runs fully in the browser)
+// =====================================================================
+const MP_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const HAND_MODEL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const FACE_MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+const HAND_LINKS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
+                    [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+let handLm = null, faceLm = null;
+
+async function loadModels() {
+    log("Loading MediaPipe library…");
+    const { FilesetResolver, HandLandmarker, FaceLandmarker } = await import(MP_URL + "/vision_bundle.mjs");
+    const fileset = await FilesetResolver.forVisionTasks(MP_URL + "/wasm");
+    handLm = await HandLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: HAND_MODEL, delegate: "GPU" },
+        runningMode: "VIDEO", numHands: 2,
+    });
+    log("Hand model loaded");
+    faceLm = await FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: FACE_MODEL, delegate: "GPU" },
+        runningMode: "VIDEO", numFaces: 1, outputFaceBlendshapes: true,
+    });
+    log("Face model loaded");
+}
+
+// Turn 21 hand points into useful numbers. x is mirrored so it matches what you see.
+function analyzeHand(lm) {
+    const wrist = lm[0];
+    const size = dist(wrist, lm[9]) || 0.001;                       // palm length, for scale
+    const extended = (tip, pip) => dist(lm[tip], wrist) > dist(lm[pip], wrist) * 1.15;
+    const index = extended(8, 6), middle = extended(12, 10), ring = extended(16, 14), pinky = extended(20, 18);
+    return {
+        lm,
+        x: 1 - lm[9].x,
+        y: lm[9].y,
+        h: remap(1 - lm[9].y, 0.1, 0.9),                              // 0 = low, 1 = high
+        pinch: remap(dist(lm[4], lm[8]) / size, 1.0, 0.25),           // 1 = thumb touching index
+        fist: !index && !middle && !ring && !pinky,
+        victory: index && middle && !ring && !pinky,
+    };
+}
+
+// Decide left/right by where the hand is on screen (more reliable than the model's label).
+function assignHands(result) {
+    const list = (result?.landmarks || []).map(analyzeHand);
+    if (list.length >= 2) {
+        list.sort((a, b) => a.x - b.x);
+        return { left: list[0], right: list[list.length - 1] };
+    }
+    if (list.length === 1) return list[0].x >= 0.5 ? { left: null, right: list[0] } : { left: list[0], right: null };
+    return { left: null, right: null };
+}
+
+function analyzeFace(result, aspect) {
+    const lm = result?.faceLandmarks?.[0];
+    if (!lm) return null;
+    const bs = {};
+    for (const c of result.faceBlendshapes?.[0]?.categories || []) bs[c.categoryName] = c.score;
+
+    // Head tilt (roll): angle of the line between the outer eye corners, in mirrored view.
+    let a = { x: (1 - lm[33].x) * aspect, y: lm[33].y }, b = { x: (1 - lm[263].x) * aspect, y: lm[263].y };
+    if (a.x > b.x) [a, b] = [b, a];
+    const rollDeg = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+
+    // Head turn (yaw): where the nose tip sits between the two cheeks.
+    const nose = 1 - lm[1].x, c1 = 1 - lm[234].x, c2 = 1 - lm[454].x;
+    const lo = Math.min(c1, c2), hi = Math.max(c1, c2);
+    const yaw = ((nose - lo) / (hi - lo || 1) - 0.5) * 2;
+
+    const browOuter = ((bs.browOuterUpLeft ?? 0) + (bs.browOuterUpRight ?? 0)) / 2;
+    return {
+        lm,
+        mouth: remap(bs.jawOpen ?? 0, 0.03, 0.6),
+        brows: remap(((bs.browInnerUp ?? 0) + browOuter) / 2, 0.1, 0.7),
+        smile: remap(((bs.mouthSmileLeft ?? 0) + (bs.mouthSmileRight ?? 0)) / 2, 0.2, 0.7),
+        tilt: deadzone(clamp(rollDeg / 25, -1, 1), 0.15),
+        turn: deadzone(clamp(yaw * 1.8, -1, 1), 0.1),
+    };
+}
+
+// =====================================================================
+// 4. Audio engine (Web Audio API)
+// =====================================================================
+let actx = null;
+const A = {};
+
+// A Hann window curve: each grain fades in and out smoothly (no clicks).
+const GRAIN_CURVE = new Float32Array(64).map((_, i) => 0.5 * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / 63)));
+
+// Granular player: plays many tiny overlapping snippets ("grains") of a sound.
+class GrainVoice {
+    constructor(ctx, dest, label) {
+        this.ctx = ctx; this.label = label; this.buffer = null;
+        this.out = ctx.createGain(); this.out.gain.value = 0;
+        this.filter = ctx.createBiquadFilter(); this.filter.type = "lowpass"; this.filter.frequency.value = 18000;
+        this.pan = ctx.createStereoPanner();
+        this.out.connect(this.filter).connect(this.pan).connect(dest);
+        this.position = 0;   // 0..1 inside the sound
+        this.size = 0.12;    // grain length in seconds
+        this.rate = 1;       // playback speed / pitch
+        this.spray = 0.02;   // random jitter of grain position (seconds)
+        this.advance = false; this.frozen = false;
+        this.level = 0; this.nextTime = 0; this.lastTick = ctx.currentTime;
+    }
+    setBuffer(buf) { this.buffer = buf; this.position = 0; }
+    setLevel(v) { this.level = v; this.out.gain.setTargetAtTime(v, this.ctx.currentTime, 0.06); }
+    tick() {
+        const now = this.ctx.currentTime;
+        const dt = now - this.lastTick; this.lastTick = now;
+        if (!this.buffer) return;
+        if (this.advance && !this.frozen) this.position = (this.position + dt * this.rate / this.buffer.duration) % 1;
+        if (this.level < 0.001) { this.nextTime = now; return; }       // silent: save CPU
+        if (this.nextTime < now) this.nextTime = now;
+        const interval = Math.max(0.012, this.size / 4);
+        while (this.nextTime < now + 0.1) {                              // schedule 100 ms ahead
+            this.spawn(this.nextTime);
+            this.nextTime += interval * (0.85 + Math.random() * 0.3);
+        }
+    }
+    spawn(t) {
+        const buf = this.buffer, ctx = this.ctx;
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.playbackRate.value = this.rate;
+        const g = ctx.createGain(); g.gain.value = 0;
+        const len = this.size * this.rate;
+        const offset = clamp(this.position * buf.duration + (Math.random() * 2 - 1) * this.spray, 0, Math.max(0, buf.duration - len - 0.001));
+        g.gain.setValueCurveAtTime(GRAIN_CURVE, t, this.size);
+        src.connect(g).connect(this.out);
+        src.start(t, offset, len);
+        src.onended = () => g.disconnect();
+    }
+}
+
+// Reverb "impulse": 2.8 seconds of fading noise, made in code (no file needed).
+function makeImpulse(ctx, seconds = 2.8, decay = 3) {
+    const len = Math.floor(ctx.sampleRate * seconds);
+    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+        const d = buf.getChannelData(ch);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    return buf;
+}
+
+// Built-in fallback sound A: an evolving chord pad with breathy noise.
+function makePadBuffer(ctx) {
+    const sr = ctx.sampleRate, n = sr * 8, buf = ctx.createBuffer(1, n, sr), d = buf.getChannelData(0);
+    const freqs = [130.81, 164.81, 196, 246.94, 329.63, 392];
+    let noise = 0;
+    for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        let s = 0;
+        for (let k = 0; k < freqs.length; k++) {
+            const wobble = Math.sin(2 * Math.PI * 0.3 * t + k) * 2;
+            const swell = 0.5 + 0.5 * Math.sin(2 * Math.PI * (0.1 + k * 0.07) * t + k);
+            s += Math.sin(2 * Math.PI * freqs[k] * t + wobble) * swell;
+        }
+        noise = noise * 0.98 + (Math.random() * 2 - 1) * 0.02;
+        d[i] = s * 0.12 + noise * 0.8 * (0.5 + 0.5 * Math.sin(2 * Math.PI * 0.25 * t));
+    }
+    return buf;
+}
+
+// Built-in fallback sound B: random bell plinks.
+function makeBellBuffer(ctx) {
+    const sr = ctx.sampleRate, n = sr * 8, buf = ctx.createBuffer(1, n, sr), d = buf.getChannelData(0);
+    const notes = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66];
+    for (let k = 0; k < 40; k++) {
+        const start = Math.floor(Math.random() * (n - sr));
+        const f = notes[Math.floor(Math.random() * notes.length)];
+        const amp = 0.15 + Math.random() * 0.2;
+        for (let i = 0; i < sr * 1.5 && start + i < n; i++) {
+            const t = i / sr;
+            d[start + i] += amp * Math.exp(-t * 3) * (Math.sin(2 * Math.PI * f * t)
+                + 0.5 * Math.sin(2 * Math.PI * f * 2.76 * t) * Math.exp(-t * 4)
+                + 0.25 * Math.sin(2 * Math.PI * f * 5.4 * t) * Math.exp(-t * 8));
+        }
+    }
+    let peak = 0;
+    for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(d[i]));
+    for (let i = 0; i < n; i++) d[i] *= 0.8 / (peak || 1);
+    return buf;
+}
+
+//   theremin + grain voices ─► bus ─► filter (mouth) ─► panner (head turn) ─┬► dry ─────────────┬► master ─► compressor ─► speakers
+//                                                                          └► reverb (brows) ─► wet ┘
+function buildAudio() {
+    actx = new AudioContext();
+    const bus = actx.createGain();
+    const filter = actx.createBiquadFilter(); filter.type = "lowpass"; filter.Q.value = 4;
+    const panner = actx.createStereoPanner();
+    const dry = actx.createGain();
+    const verb = actx.createConvolver(); verb.buffer = makeImpulse(actx);
+    const wet = actx.createGain(); wet.gain.value = 0.1;
+    const master = actx.createGain(); master.gain.value = 0.8;
+    const comp = actx.createDynamicsCompressor();
+    bus.connect(filter).connect(panner);
+    panner.connect(dry).connect(master);
+    panner.connect(verb).connect(wet).connect(master);
+    master.connect(comp).connect(actx.destination);
+    Object.assign(A, { bus, filter, panner, wet, master });
+
+    // Theremin: two slightly detuned oscillators + vibrato LFO
+    const tGain = actx.createGain(); tGain.gain.value = 0;
+    const o1 = actx.createOscillator(); o1.type = "sawtooth";
+    const o2 = actx.createOscillator(); o2.type = "triangle"; o2.detune.value = 7;
+    const g1 = actx.createGain(); g1.gain.value = 0.3;
+    const g2 = actx.createGain(); g2.gain.value = 0.6;
+    const lfo = actx.createOscillator(); lfo.frequency.value = 5.5;
+    const lfoAmt = actx.createGain(); lfoAmt.gain.value = 0;
+    lfo.connect(lfoAmt); lfoAmt.connect(o1.detune); lfoAmt.connect(o2.detune);
+    o1.connect(g1).connect(tGain); o2.connect(g2).connect(tGain); tGain.connect(bus);
+    o1.start(); o2.start(); lfo.start();
+    A.theremin = { o1, o2, tGain, lfoAmt };
+
+    // Two granular voices (slots A and B), starting with built-in sounds
+    A.voiceA = new GrainVoice(actx, bus, "A");
+    A.voiceB = new GrainVoice(actx, bus, "B");
+    A.voiceA.setBuffer(makePadBuffer(actx));
+    A.voiceB.setBuffer(makeBellBuffer(actx));
+    setInterval(() => { A.voiceA.tick(); A.voiceB.tick(); }, 25);
+    log("Audio engine built", { sampleRate: actx.sampleRate });
+}
+
+// Music helpers
+const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const midiToHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+const noteName = (m) => NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1);
+function scaleNote(h, scale) {                                         // 15 notes from C3 to C5
+    const i = Math.min(14, Math.floor(h * 15));
+    return 48 + Math.floor(i / 7) * 12 + SCALES[scale][i % 7];
+}
+
+// Called every video frame: send the body controls to the sound.
+function updateAudio() {
+    const t = actx.currentTime;
+    const L = hands.left, R = hands.right;
+    const th = A.theremin, vA = A.voiceA, vB = A.voiceB;
+    const set = (param, v, tc = 0.05) => param.setTargetAtTime(v, t, tc);
+
+    // --- face effects (all modes) ---
+    set(A.filter.frequency, 300 * Math.pow(2, C.mouth.v * 6));          // 300 Hz .. 19 kHz
+    set(A.panner.pan, C.turn.v * 0.9);
+    const bend = Math.pow(2, (C.tilt.v * 2) / 12);                      // ±2 semitones
+    const scale = C.smile.v > 0.5 ? "major" : "minor";
+    let wet = 0.08 + C.brows.v * 0.9;
+
+    // --- theremin ---
+    if (mode === "theremin") {
+        const note = scaleNote(C.rH.v, scale);
+        const f = midiToHz(note) * bend;
+        set(th.o1.frequency, f, 0.03); set(th.o2.frequency, f, 0.03);
+        set(th.tGain.gain, R ? (L ? C.lH.v : 0.6) * 0.5 : 0);
+        set(th.lfoAmt.gain, C.rPinch.v * 40, 0.1);
+        readout = R ? `${noteName(note)} · ${scale}` : "raise your right hand";
+    } else {
+        set(th.tGain.gain, 0);
+    }
+
+    // --- sculptor (sound A, played by right hand) ---
+    if (mode === "sculptor") {
+        vA.advance = false; vA.frozen = false;
+        vA.position = remap(C.rX.v, 0.1, 0.9);
+        vA.rate = Math.pow(2, (C.rH.v - 0.5) * 2) * bend;               // ±1 octave
+        vA.size = lerp(0.25, 0.02, C.rPinch.v);
+        vA.spray = 0.01;
+        vA.setLevel(R ? (L ? C.lH.v : 0.7) : 0);
+        vB.setLevel(0);
+        readout = R ? `pos ${Math.round(vA.position * 100)}% · grain ${Math.round(vA.size * 1000)} ms` : "raise your right hand";
+    }
+
+    // --- texture mixer (left = A, right = B) ---
+    if (mode === "mixer") {
+        const melt = C.close.v;
+        for (const [v, hand, hS, side] of [[vA, L, C.lH, -1], [vB, R, C.rH, 1]]) {
+            v.advance = true;
+            v.frozen = !!hand?.fist;
+            v.rate = bend;
+            v.size = lerp(0.12, 0.45, melt);
+            v.spray = lerp(0.02, 0.4, melt);
+            set(v.filter.frequency, 200 * Math.pow(2, hS.v * 6.5), 0.08);
+            set(v.pan.pan, side * (1 - melt) * 0.8, 0.1);
+            v.setLevel(hand ? 0.15 + hS.v * 0.85 : 0);
+        }
+        wet += melt * 0.4;
+        readout = `A ${L ? (L.fist ? "✊ frozen" : "playing") : "—"} · B ${R ? (R.fist ? "✊ frozen" : "playing") : "—"}${melt > 0.5 ? " · melting" : ""}`;
+    } else {
+        for (const v of [vA, vB]) { set(v.filter.frequency, 18000); set(v.pan.pan, 0); }
+    }
+    if (mode === "theremin") { vA.setLevel(0); vB.setLevel(0); }
+
+    set(A.wet.gain, Math.min(1.2, wet), 0.1);
+}
+
+// =====================================================================
+// 5. Modes
+// =====================================================================
+function setMode(m) {
+    if (m === mode) return;
+    mode = m;
+    log("Mode →", m);
+    document.querySelectorAll(".modeBtn").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+    $("hint").textContent = MODE_INFO[m].hint;
+}
+const nextMode = () => setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);
+
+// Hold ✌️ for 1 second → next mode
+let victoryStart = 0, lastSwitch = 0;
+function checkVictory(now) {
+    if (hands.left?.victory || hands.right?.victory) {
+        if (!victoryStart) victoryStart = now;
+        if (now - victoryStart > 1000 && now - lastSwitch > 1500) {
+            log("✌️ gesture held → switching mode");
+            nextMode(); lastSwitch = now; victoryStart = 0;
+        }
+    } else {
+        victoryStart = 0;
+    }
+    victoryProgress = victoryStart ? clamp((now - victoryStart) / 1000) : 0;
+}
+
+// =====================================================================
+// 6. Main loop: track → controls → sound → draw
+// =====================================================================
+const video = $("video"), canvas = $("canvas"), g = canvas.getContext("2d");
+let lastVideoTime = -1, detectErrorLogged = false, prevHandCount = -1, prevFace = null;
+
+function updateControls() {
+    const L = hands.left, R = hands.right;
+    if (face) { C.mouth.to(face.mouth); C.brows.to(face.brows); C.smile.to(face.smile); C.tilt.to(face.tilt); C.turn.to(face.turn); }
+    else { C.mouth.to(0.5); C.brows.to(0); C.smile.to(0); C.tilt.to(0); C.turn.to(0); }
+    if (L) { C.lH.to(L.h); C.lX.to(L.x); C.lPinch.to(L.pinch); }
+    if (R) { C.rH.to(R.h); C.rX.to(R.x); C.rPinch.to(R.pinch); }
+    C.close.to(L && R ? remap(Math.hypot(L.x - R.x, L.y - R.y), 0.55, 0.12) : 0);
+}
+
+function logChanges() {
+    const count = (hands.left ? 1 : 0) + (hands.right ? 1 : 0);
+    if (count !== prevHandCount) { log(`Hands visible: ${count}`); prevHandCount = count; }
+    if (!!face !== prevFace) { log(face ? "Face found" : "Face lost"); prevFace = !!face; }
+}
+
+function frame() {
+    requestAnimationFrame(frame);
+    const now = performance.now();
+    if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
+        try {
+            hands = assignHands(handLm.detectForVideo(video, now));
+            face = analyzeFace(faceLm.detectForVideo(video, now), video.videoWidth / video.videoHeight);
+        } catch (e) {
+            if (!detectErrorLogged) { err("Tracking error (shown once)", e); detectErrorLogged = true; }
+        }
+        logChanges();
+        updateControls();
+        checkVictory(now);
+        updateAudio();
+    }
+    draw();
+    updateMeters();
+}
+
+// =====================================================================
+// 7. Drawing: mirrored video + tracking overlay + HUD
+// =====================================================================
+function draw() {
+    const w = canvas.width, h = canvas.height;
+    g.save(); g.translate(w, 0); g.scale(-1, 1); g.drawImage(video, 0, 0, w, h); g.restore();
+    g.fillStyle = "rgba(8, 9, 14, 0.4)"; g.fillRect(0, 0, w, h);
+
+    if (face) {
+        g.fillStyle = "rgba(255, 255, 255, 0.45)";
+        for (let i = 0; i < face.lm.length; i += 3) { const p = face.lm[i]; g.fillRect((1 - p.x) * w - 1, p.y * h - 1, 2, 2); }
+    }
+
+    // Sculptor: show where you are inside the sound
+    if (mode === "sculptor" && hands.right) {
+        const x = A.voiceA.position * w;
+        g.strokeStyle = "rgba(124, 245, 196, 0.6)"; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke();
+    }
+
+    for (const [hand, color, label] of [[hands.left, "#ff7ab6", mode === "mixer" ? "A" : "L"], [hands.right, "#7cf5c4", mode === "mixer" ? "B" : "R"]]) {
+        if (!hand) continue;
+        g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 3;
+        for (const [s, e] of HAND_LINKS) {
+            const a = hand.lm[s], b = hand.lm[e];
+            g.beginPath(); g.moveTo((1 - a.x) * w, a.y * h); g.lineTo((1 - b.x) * w, b.y * h); g.stroke();
+        }
+        for (const p of hand.lm) { g.beginPath(); g.arc((1 - p.x) * w, p.y * h, 3.5, 0, 7); g.fill(); }
+        const tag = label + (hand.fist ? " ✊" : "") + (hand.victory ? " ✌️" : "");
+        g.font = "bold 20px system-ui"; g.fillText(tag, (1 - hand.lm[0].x) * w - 10, hand.lm[0].y * h + 30);
+    }
+
+    // HUD
+    g.fillStyle = "#fff"; g.font = "bold 26px system-ui"; g.fillText(MODE_INFO[mode].name, 18, 40);
+    g.font = "18px system-ui"; g.fillStyle = "rgba(255,255,255,0.8)"; g.fillText(readout, 18, 66);
+    if (muted) { g.fillStyle = "#ffcc66"; g.fillText("MUTED (M)", w - 110, 66); }
+    if (victoryProgress > 0) {
+        g.strokeStyle = "#ffcc66"; g.lineWidth = 5;
+        g.beginPath(); g.arc(w - 40, 40, 20, -Math.PI / 2, -Math.PI / 2 + victoryProgress * Math.PI * 2); g.stroke();
+    }
+}
+
+// Side-panel meters: see what your body is doing
+const METERS = [
+    ["mouth", "👄 Mouth → filter"], ["brows", "🤨 Brows → reverb"], ["smile", "😊 Smile → major"],
+    ["tilt", "↔️ Tilt → bend", true], ["turn", "🔄 Turn → pan", true],
+    ["lH", "🫲 Left height"], ["rH", "🫱 Right height"], ["rPinch", "🤏 Right pinch"], ["close", "🙌 Hands together"],
+];
+const meterEls = {};
+for (const [key, label, bipolar] of METERS) {
+    const row = document.createElement("div"); row.className = "meter";
+    const name = document.createElement("span"); name.textContent = label;
+    const bar = document.createElement("div"); bar.className = "bar" + (bipolar ? " bi" : "");
+    const fill = document.createElement("i"); bar.append(fill); row.append(name, bar);
+    $("meters").append(row);
+    meterEls[key] = { fill, bipolar };
+}
+function updateMeters() {
+    for (const key in meterEls) {
+        const { fill, bipolar } = meterEls[key], v = C[key].v;
+        if (bipolar) { fill.style.left = (50 + Math.min(0, v) * 50) + "%"; fill.style.width = Math.abs(v) * 50 + "%"; }
+        else { fill.style.width = clamp(v) * 100 + "%"; }
+    }
+}
+
+// =====================================================================
+// 8. Freesound search + loading sounds into slots A / B
+// =====================================================================
+function licenseShort(url = "") {
+    if (url.includes("zero")) return "CC0";
+    if (url.includes("by-nc")) return "CC BY-NC";
+    if (url.includes("sampling")) return "Sampling+";
+    if (url.includes("/by/")) return "CC BY";
+    return "see page";
+}
+
+function showSlot(slot, r) {
+    const el = $(slot === "A" ? "slotA" : "slotB");
+    el.textContent = "";
+    const a = document.createElement("a");
+    a.href = r.page; a.target = "_blank"; a.rel = "noopener"; a.textContent = r.name;
+    el.append(a, ` by ${r.username} (${licenseShort(r.license)})`);
+}
+
+async function loadIntoSlot(r, slot) {
+    if (!actx) { setStatus("Press ▶ Start first, then load sounds.", "warn"); return; }
+    setStatus(`Loading “${r.name}” into ${slot}…`);
+    try {
+        const res = await fetch("/api/audio?url=" + encodeURIComponent(r.preview));
+        if (!res.ok) throw new Error(`server said HTTP ${res.status}`);
+        const buf = await actx.decodeAudioData(await res.arrayBuffer());
+        (slot === "A" ? A.voiceA : A.voiceB).setBuffer(buf);
+        showSlot(slot, r);
+        log(`Loaded into slot ${slot}:`, r.name, `by ${r.username}`, `${buf.duration.toFixed(1)}s`);
+        setStatus(`Loaded “${r.name}” into slot ${slot}.`, "ok");
+    } catch (e) {
+        err("Could not load sound", r, e);
+        setStatus("Couldn't load that sound. See the console for details.", "error");
+    }
+}
+
+$("searchForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = $("q").value.trim();
+    if (!q) return;
+    const box = $("results");
+    box.textContent = "Searching…";
+    log("Searching Freesound for", q);
+    try {
+        const res = await fetch("/api/search?q=" + encodeURIComponent(q));
+        const data = await res.json();
+        if (!res.ok) { box.textContent = data.message || "Search failed."; warn("Search failed", data); return; }
+        box.textContent = data.results.length ? "" : "No results. Try another word.";
+        for (const r of data.results) {
+            const row = document.createElement("div"); row.className = "result";
+            const info = document.createElement("div");
+            const name = document.createElement("div"); name.className = "name"; name.textContent = r.name; name.title = r.name;
+            const meta = document.createElement("div");
+            meta.textContent = `${r.username} · ${Number(r.duration).toFixed(1)}s · ${licenseShort(r.license)}`;
+            info.append(name, meta);
+            row.append(info);
+            for (const slot of ["A", "B"]) {
+                const b = document.createElement("button"); b.textContent = "→ " + slot;
+                b.onclick = () => loadIntoSlot(r, slot);
+                row.append(b);
+            }
+            box.append(row);
+        }
+    } catch (e2) {
+        err("Search request failed", e2);
+        box.textContent = "Search failed. Is server.py running?";
+    }
+});
+
+// =====================================================================
+// 9. Start-up, buttons, keys
+// =====================================================================
+async function start() {
+    const btn = $("startBtn");
+    if (location.protocol === "file:") {
+        setStatus("Run `python3 server.py` and open http://localhost:8000. The camera doesn't work from a file.", "error");
+        return;
+    }
+    btn.disabled = true;
+    try {
+        setStatus("Starting audio…");
+        if (!actx) buildAudio();
+        await actx.resume();
+
+        setStatus("Starting camera…");
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+        video.srcObject = stream;
+        await video.play();
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        log("Camera started", `${video.videoWidth}x${video.videoHeight}`);
+
+        setStatus("Loading hand + face tracking (the first time can take a few seconds)…");
+        await loadModels();
+
+        $("placeholder").remove();
+        btn.textContent = "● Running";
+        setStatus("Ready! Move your hands and face.", "ok");
+        requestAnimationFrame(frame);
+    } catch (e) {
+        err("Startup failed", e);
+        const msg = e.name === "NotAllowedError" ? "Camera permission was denied. Allow it in the browser's address bar, then try again." : "Startup failed: " + e.message;
+        setStatus(msg, "error");
+        btn.disabled = false;
+    }
+}
+
+function toggleMute() {
+    muted = !muted;
+    if (actx) A.master.gain.setTargetAtTime(muted ? 0 : 0.8, actx.currentTime, 0.05);
+    $("muteBtn").textContent = muted ? "🔇 Unmute (M)" : "🔊 Mute (M)";
+    log(muted ? "Muted" : "Unmuted");
+}
+
+$("startBtn").addEventListener("click", start);
+$("muteBtn").addEventListener("click", toggleMute);
+document.querySelectorAll(".modeBtn").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT") return;
+    if (e.key === "1" || e.key === "2" || e.key === "3") setMode(MODES[Number(e.key) - 1]);
+    if (e.key === "m" || e.key === "M") toggleMute();
+});
+
+$("hint").textContent = MODE_INFO[mode].hint;
+log("Page loaded. Press Start.");
+</script>
+</body>
+</html>

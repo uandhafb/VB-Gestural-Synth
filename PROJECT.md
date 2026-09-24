@@ -11,9 +11,9 @@ The hands have **3 modes**. The **face** always controls the effects.
 
 | Mode | Hands |
 |---|---|
-| 1. Theremin | Right hand height sets pitch (snapped to a scale). Left hand height sets volume. |
+| 1. Theremin | Right hand height sets pitch (snapped to a scale). Left hand height sets volume. Right pinch adds vibrato. |
 | 2. Sculptor | Right hand X moves through a sound. Right hand Y sets pitch. Pinch sets grain size. Left hand Y sets volume. |
-| 3. Texture Mixer | Each hand holds a sound (A/B). Height sets volume and brightness. Bring your hands together to blend. A fist freezes the sound. |
+| 3. Texture Mixer | Each hand holds a sound (A/B). Height sets volume and brightness. Hands apart = wide stereo. Hands together = the sounds melt into one reverby cloud. A fist freezes the sound. |
 
 **Face, in every mode:** mouth open → filter brightness, eyebrows up → reverb, head tilt → pitch bend, head turn → left/right pan, smile → major/minor scale.
 
